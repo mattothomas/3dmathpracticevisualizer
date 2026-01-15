@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Calc 3 Surface Trainer</title>
+
+<!-- KaTeX -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body);"></script>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f4f4;
+  padding: 20px;
+  text-align: center;
+}
+
+button {
+  padding: 8px 14px;
+  margin: 5px;
+  cursor: pointer;
+}
+
+.hidden { display: none; }
+
+.card {
+  background: white;
+  border: 2px solid #ccc;
+  padding: 12px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card img {
+  max-width: 100%;
+  max-height: 180px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.selected { border-color: blue; }
+.correct { border-color: green; background: #d4ffd4; }
+.wrong { border-color: red; background: #ffd4d4; }
+
+#timer { font-size: 20px; margin-top: 10px; }
+.text { font-size: 16px; }
+
+#testFeedback, #matchStreak, #testStreak {
+  font-size: 16px;
+  margin-top: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Calc 3 Surfaces</h1>
+
+<div id="uploadView"></div>
+
+<button onclick="startFlashcards()">Flashcards</button>
+<button onclick="startLearn()">Learn</button>
+<button onclick="startMatch()">Match</button>
+<button onclick="startTest()">Test</button>
+
+<div id="timer" class="hidden"></div>
+
+<!-- Flashcards -->
+<div id="flashcardView" class="hidden">
+  <div class="card" id="flashcard"></div>
+  <button onclick="flipCard()">Flip</button>
+  <button onclick="nextFlashcard()">Next</button>
+</div>
+
+<!-- Learn -->
+
+<div id="learnView" class="hidden">
+  <div id="learnProgress" class="text"></div>
+  <div class="card" id="learnCard"></div>
+  <button onclick="flipLearn()">Flip</button>
+  <button id="wrongBtn" onclick="markWrong()" disabled>Wrong</button>
+  <button id="rightBtn" onclick="markRight()" disabled>Right</button>
+</div>
+
+<!-- Match -->
+<div id="matchView" class="hidden">
+  <div id="matchStreak" class="text"></div>
+  <div class="grid" id="matchGrid"></div>
+</div>
+
+<!-- Test -->
+<div id="testView" class="hidden">
+  <div class="card" id="testPrompt"></div>
+  <div id="testOptions"></div>
+  <div id="testFeedback" class="text"></div>
+  <div id="testStreak" class="text"></div>
+</div>
+
+<script>
+/* =========================
+   DATA MODEL
+========================= */
+
+const concepts = [
+  { id: "elliptic-cylinder", name: "Elliptic Cylinder",
+    equation: "\\frac{x^2}{a^2} + \\frac{y^2}{b^2} = 1",
+    visual: "Tube / pipe. Oval cross-section. Stretches along z." },
+
+  { id: "parabolic-cylinder", name: "Parabolic Cylinder",
+    equation: "y = ax^2",
+    visual: "Taco shell / half-pipe. Parabola cross-section." },
+
+  { id: "hyperbolic-cylinder", name: "Hyperbolic Cylinder",
+    equation: "\\frac{x^2}{a^2} - \\frac{y^2}{b^2} = 1",
+    visual: "Two curved walls. Hyperbola cross-section." },
+
+  { id: "elliptic-paraboloid", name: "Elliptic Paraboloid",
+    equation: "z = \\frac{x^2}{a^2} + \\frac{y^2}{b^2}",
+    visual: "Cereal bowl. SAME signs." },
+
+  { id: "hyperbolic-paraboloid", name: "Hyperbolic Paraboloid",
+    equation: "z = \\frac{x^2}{a^2} - \\frac{y^2}{b^2}",
+    visual: "Pringles chip / saddle." },
+
+  { id: "ellipsoid", name: "Ellipsoid",
+    equation: "\\frac{x^2}{a^2} + \\frac{y^2}{b^2} + \\frac{z^2}{c^2} = 1",
+    visual: "Football shape. Closed surface." },
+
+  { id: "hyperboloid-1", name: "Hyperboloid (1 Sheet)",
+    equation: "\\frac{x^2}{a^2} + \\frac{y^2}{b^2} - \\frac{z^2}{c^2} = 1",
+    visual: "Cooling tower. One minus sign." },
+
+  { id: "hyperboloid-2", name: "Hyperboloid (2 Sheets)",
+    equation: "-\\frac{x^2}{a^2} - \\frac{y^2}{b^2} + \\frac{z^2}{c^2} = 1",
+    visual: "Two bowls. Two minus signs." },
+
+  { id: "cone", name: "Cone",
+    equation: "\\frac{z^2}{c^2} = \\frac{x^2}{a^2} + \\frac{y^2}{b^2}",
+    visual: "Hourglass. Pinched at origin." }
+];
+
+/* =========================
+   IMAGE UPLOAD
+========================= */
+
+function initUploads() {
+  let html = "<h3>Upload one image per surface</h3>";
+  concepts.forEach(c => {
+    html += `
+      <div>
+        ${c.name}:
+        <input type="file" accept="image/*"
+          onchange="saveImage('${c.id}', this.files[0])">
+      </div>`;
+  });
+  uploadView.innerHTML = html;
+}
+
+function saveImage(id, file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    localStorage.setItem("img_" + id, reader.result);
+  };
+  reader.readAsDataURL(file);
+}
+
+initUploads();
+
+/* =========================
+   REPRESENTATIONS
+========================= */
+
+function buildRepresentations() {
+  const reps = [];
+  concepts.forEach(c => {
+    reps.push({ conceptId: c.id, type: "name", value: c.name });
+    reps.push({ conceptId: c.id, type: "equation", value: c.equation });
+    reps.push({ conceptId: c.id, type: "visual", value: c.visual });
+    reps.push({
+      conceptId: c.id,
+      type: "image",
+      value: localStorage.getItem("img_" + c.id)
+    });
+  });
+  return reps;
+}
+
+function renderRep(rep) {
+  if (rep.type === "image" && rep.value) return `<img src="${rep.value}">`;
+  if (rep.type === "equation") return `<div class="text">\\(${rep.value}\\)</div>`;
+  return `<div class="text">${rep.value}</div>`;
+}
+
+// After setting innerHTML in flashcard/learn/match/test, always call:
+function renderMath(el) {
+  renderMathInElement(el, {
+    delimiters: [
+      {left: "\\(", right: "\\)", display: false},
+      {left: "\\[", right: "\\]", display: true}
+    ]
+  });
+}
+
+
+// flip mapping: ensures flip always shows something different
+function getFlipRepresentation(rep) {
+  const concept = concepts.find(c => c.id === rep.conceptId);
+  if (!concept) return rep.value;
+
+  let value = "";
+  switch(rep.type) {
+    case "name": value = concept.equation || concept.visual; break;
+    case "equation": value = concept.name; break;
+    case "visual": value = concept.name; break;
+    case "image": value = concept.name; break;
+    default: value = rep.value; break;
+  }
+
+  // If the value is an equation, wrap in KaTeX delimiters
+  if (rep.type === "name" && concept.equation) return `\\(${value}\\)`;
+  return value;
+}
+
+function shuffle(arr) {
+  return arr.sort(() => Math.random() - 0.5);
+}
+
+function hideAll() {
+  ["flashcardView","learnView","matchView","testView","timer"]
+    .forEach(id => document.getElementById(id).classList.add("hidden"));
+}
+
+/* =========================
+   FLASHCARDS
+========================= */
+
+let flashcards = [], fIndex = 0, flipped = false;
+
+function startFlashcards() {
+  flashcards = shuffle(buildRepresentations());
+  fIndex = 0;
+  flipped = false;
+  hideAll();
+  flashcardView.classList.remove("hidden");
+  showFlashcard();
+}
+
+function showFlashcard() {
+  const rep = flashcards[fIndex];
+  flashcard.innerHTML = flipped
+    ? `<div class="text">${getFlipRepresentation(rep)}</div>`
+    : renderRep(rep);
+  renderMath(flashcard);
+}
+
+
+function flipCard() {
+  flipped = !flipped;
+  showFlashcard();
+}
+
+function nextFlashcard() {
+  fIndex = (fIndex + 1) % flashcards.length;
+  flipped = false;
+  showFlashcard();
+}
+
+/* =========================
+   LEARN MODE (SPACED REP)
+========================= */
+
+let learnQueue = [], current, learnFlipped = false;
+
+function startLearn() {
+  hideAll();
+  learnView.classList.remove("hidden");
+
+  learnQueue = buildRepresentations()
+    .filter(r => r.type !== "name")
+    .map(r => ({
+      ...r,
+      repetitions: 0,     // SM-2 repetitions counter
+      interval: 1,        // interval in "days" (we'll treat 1 unit = next card)
+      ef: 2.5,            // ease factor
+      score: 0            // mastery score 0-5
+    }));
+
+  shuffle(learnQueue);
+  nextLearn();
+}
+
+
+function nextLearn() {
+  learnFlipped = false;
+  wrongBtn.disabled = true;
+  rightBtn.disabled = true;
+  current = learnQueue.shift();
+  showLearnCard();
+}
+
+function showLearnCard() {
+  learnCard.innerHTML = learnFlipped
+    ? `<div class="text">${getFlipRepresentation(current)}</div>`
+    : renderRep(current);
+  renderMath(learnCard);
+
+  // Update progress
+  const mastered = learnQueue.filter(c => c.score >= 4).length;
+  const total = learnQueue.length;
+  learnProgress.textContent = `Mastery: ${mastered}/${total} (${Math.round(mastered/total*100)}%)`;
+}
+
+
+function flipLearn() {
+  if (learnFlipped) return;
+  learnFlipped = true;
+  wrongBtn.disabled = false;
+  rightBtn.disabled = false;
+  showLearnCard();
+}
+
+function markRight() {
+  if (!learnFlipped) return;
+
+  const q = 5; // assume "5 = perfect recall" (you could make this dynamic later)
+  current.score = q;
+
+  // SM-2 algorithm
+  if (q >= 3) {
+    if (current.repetitions === 0) {
+      current.interval = 1;
+    } else if (current.repetitions === 1) {
+      current.interval = 6;
+    } else {
+      current.interval = Math.round(current.interval * current.ef);
+    }
+    current.ef = Math.max(1.3, current.ef + 0.1 - (5 - q) * (0.08 + (5 - q) * 0.02));
+    current.repetitions++;
+  } else {
+    current.repetitions = 0;
+    current.interval = 1;
+    current.ef = Math.max(1.3, current.ef);
+  }
+
+  // Put back in queue according to interval
+  // Here interval is in "cards to skip", we can push back multiple times for simplicity
+  learnQueue.push(current);
+
+  nextLearn();
+}
+
+
+function markWrong() {
+  if (!learnFlipped) return;
+
+  current.repetitions = 0;
+  current.interval = 1;
+  // optionally, slightly decrease ef
+  current.ef = Math.max(1.3, current.ef - 0.2);
+
+  current.score = 0;
+  learnQueue.push(current);
+  nextLearn();
+}
+
+
+/* =========================
+   MATCH MODE
+========================= */
+
+let selected = null;
+let matchStreak = 0, matchBest = 0;
+
+function startMatch() {
+  hideAll();
+  matchView.classList.remove("hidden");
+  timer.classList.remove("hidden");
+
+  const reps = shuffle(buildRepresentations()).slice(0, 24);
+  matchGrid.innerHTML = "";
+  selected = null;
+  matchStreak = 0;
+  matchBest = 0;
+  document.getElementById("matchStreak").textContent = `Streak: ${matchStreak} | Best: ${matchBest}`;
+
+  reps.forEach(rep => {
+    const div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = renderRep(rep);
+    div.onclick = () => handleMatch(div, rep);
+    matchGrid.appendChild(div);
+    renderMath(div); // ensure each card renders LaTeX
+  });
+
+  renderMathInElement(matchGrid);
+}
+
+function handleMatch(el, rep) {
+  if (el.classList.contains("correct")) return;
+  el.classList.add("selected");
+
+  if (!selected) { selected = { el, rep }; return; }
+
+  if (selected.rep.conceptId === rep.conceptId && selected.el !== el) {
+    el.classList.add("correct");
+    selected.el.classList.add("correct");
+    matchStreak++;
+    matchBest = Math.max(matchBest, matchStreak);
+    document.getElementById("matchStreak").textContent = `Streak: ${matchStreak} | Best: ${matchBest}`;
+  } else {
+    el.classList.add("wrong");
+    selected.el.classList.add("wrong");
+    matchStreak = 0;
+    document.getElementById("matchStreak").textContent = `Streak: ${matchStreak} | Best: ${matchBest}`;
+    setTimeout(() => {
+      el.classList.remove("wrong","selected");
+      selected.el.classList.remove("wrong","selected");
+    }, 600);
+  }
+  selected = null;
+}
+
+/* =========================
+   TEST MODE
+========================= */
+
+let testStreak = 0, testBest = 0;
+
+function startTest() {
+  hideAll();
+  testView.classList.remove("hidden");
+  testStreak = 0; testBest = 0;
+  document.getElementById("testStreak").textContent = `Streak: ${testStreak} | Best: ${testBest}`;
+  nextTest();
+}
+
+function nextTest() {
+  const reps = buildRepresentations().filter(r => r.type !== "name");
+  const rep = shuffle(reps)[0];
+  testPrompt.innerHTML = renderRep(rep);
+  renderMath(testPrompt);
+
+  const options = shuffle(concepts).slice(0, 4);
+  if (!options.find(o => o.id === rep.conceptId)) options[0] = concepts.find(o => o.id === rep.conceptId);
+
+  testOptions.innerHTML = "";
+  const feedback = document.getElementById("testFeedback");
+  feedback.textContent = "";
+
+  options.forEach(opt => {
+    const btn = document.createElement("button");
+    btn.textContent = opt.name;
+    btn.onclick = () => handleTestChoice(rep, opt);
+    testOptions.appendChild(btn);
+  });
+}
+
+function handleTestChoice(rep, chosen) {
+  const feedback = document.getElementById("testFeedback");
+  if (chosen.id === rep.conceptId) {
+    feedback.textContent = "✅ Correct!";
+    testStreak++;
+  } else {
+    feedback.textContent = "❌ Wrong!";
+    testBest = Math.max(testBest, testStreak);
+    testStreak = 0;
+  }
+  document.getElementById("testStreak").textContent = `Streak: ${testStreak} | Best: ${testBest}`;
+  setTimeout(nextTest, 600);
+}
+
+/* =========================
+   KEYBOARD SHORTCUTS
+========================= */
+
+document.addEventListener("keydown", e => {
+  if (!learnView.classList.contains("hidden")) {
+    if (e.code === "Space") { e.preventDefault(); flipLearn(); }
+    if (e.code === "ArrowRight") markRight();
+    if (e.code === "ArrowLeft") markWrong();
+  }
+});
+
+document.addEventListener("keydown", e => {
+  if (!flashcardView.classList.contains("hidden")) {
+    if (e.code === "Space") { e.preventDefault(); flipCard(); }
+    if (e.code === "ArrowRight") nextFlashcard();
+  }
+
+  if (!learnView.classList.contains("hidden")) {
+    if (e.code === "Space") { e.preventDefault(); flipLearn(); }
+    if (e.code === "ArrowRight") markRight();
+    if (e.code === "ArrowLeft") markWrong();
+  }
+});
+
+</script>
+
+</body>
+</html>
