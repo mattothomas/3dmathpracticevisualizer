@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Concept Study Tool</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f4f4;
+  text-align: center;
+  padding: 20px;
+}
+
+button {
+  padding: 8px 14px;
+  margin: 5px;
+  cursor: pointer;
+}
+
+.hidden { display: none; }
+
+.card {
+  background: white;
+  border: 2px solid #ccc;
+  padding: 10px;
+  margin: 20px auto;
+  width: 350px;
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card img {
+  max-width: 100%;
+  max-height: 200px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.grid .card {
+  width: 100%;
+  height: 140px;
+  cursor: pointer;
+}
+
+.selected { border-color: blue; }
+.correct {
+  border-color: green;
+  background: #d4ffd4;
+  pointer-events: none;
+}
+.wrong {
+  border-color: red;
+  background: #ffd4d4;
+}
+
+#timer {
+  font-size: 20px;
+  margin-top: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Concept Study Tool</h1>
+
+<button onclick="startFlashcards()">Flashcards</button>
+<button onclick="startLearn()">Learn</button>
+<button onclick="startMatch()">Match</button>
+<button onclick="startTest()">Test</button>
+
+<div id="timer" class="hidden"></div>
+
+<!-- Flashcard / Learn -->
+<div id="flashcardView" class="hidden">
+  <div class="card" id="flashcard"></div>
+  <button onclick="flipCard()">Flip</button>
+  <button onclick="nextFlashcard()">Next</button>
+</div>
+
+<!-- Match -->
+<div id="matchView" class="hidden">
+  <div class="grid" id="matchGrid"></div>
+</div>
+
+<!-- Test -->
+<div id="testView" class="hidden">
+  <div class="card" id="testPrompt"></div>
+  <div id="testOptions"></div>
+</div>
+
+<script>
+/* ======================
+   DATA MODEL
+====================== */
+
+const concepts = [
+  {
+    id: "ellipsoid",
+    reps: [
+      "elipsoid_formula.png",
+      "elipsoid_formula_alternate_form.png",
+      "elipsoid_diagram.png",
+      "elipsoid_name.png"
+    ]
+  },
+  {
+    id: "hyperboloid",
+    reps: [
+      "hyperboloid_formula.png",
+      "hyperboloid_diagram.png",
+      "hyperboloid_name.png"
+    ]
+  }
+];
+
+/* ======================
+   GLOBAL STATE
+====================== */
+
+let cards = [];
+let index = 0;
+let showingFront = true;
+let selected = null;
+let timerInterval;
+let time = 0;
+
+/* ======================
+   UTIL
+====================== */
+
+function shuffle(arr) {
+  return arr.sort(() => Math.random() - 0.5);
+}
+
+function buildCards() {
+  cards = [];
+  concepts.forEach(c =>
+    c.reps.forEach(src =>
+      cards.push({ conceptId: c.id, src })
+    )
+  );
+  shuffle(cards);
+}
+
+function showOnly(id) {
+  ["flashcardView", "matchView", "testView", "timer"]
+    .forEach(v => document.getElementById(v).classList.add("hidden"));
+  document.getElementById(id).classList.remove("hidden");
+}
+
+/* ======================
+   FLASHCARDS
+====================== */
+
+function startFlashcards() {
+  buildCards();
+  index = 0;
+  showingFront = true;
+  showOnly("flashcardView");
+  renderFlashcard();
+}
+
+function renderFlashcard() {
+  flashcard.innerHTML = `<img src="${cards[index].src}">`;
+}
+
+function flipCard() {
+  showingFront = !showingFront;
+  const concept = cards[index].conceptId;
+  flashcard.innerHTML = showingFront
+    ? `<img src="${cards[index].src}">`
+    : `<h2>${concept}</h2>`;
+}
+
+function nextFlashcard() {
+  index = (index + 1) % cards.length;
+  showingFront = true;
+  renderFlashcard();
+}
+
+/* ======================
+   LEARN (self-grade)
+====================== */
+
+function startLearn() {
+  startFlashcards();
+  alert("Learn mode: flip, then decide if you knew it.");
+}
+
+/* ======================
+   MATCH MODE (24 cards)
+====================== */
+
+function startMatch() {
+  buildCards();
+  showOnly("matchView");
+  startTimer();
+
+  matchGrid.innerHTML = "";
+  selected = null;
+
+  const round = shuffle(cards).slice(0, 24);
+
+  round.forEach(card => {
+    const div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = `<img src="${card.src}">`;
+    div.onclick = () => handleMatch(div, card);
+    matchGrid.appendChild(div);
+  });
+}
+
+function handleMatch(el, card) {
+  if (el.classList.contains("correct")) return;
+  el.classList.add("selected");
+
+  if (!selected) {
+    selected = { el, card };
+    return;
+  }
+
+  const match =
+    selected.card.conceptId === card.conceptId &&
+    selected.el !== el;
+
+  if (match) {
+    el.classList.add("correct");
+    selected.el.classList.add("correct");
+  } else {
+    el.classList.add("wrong");
+    selected.el.classList.add("wrong");
+    setTimeout(() => {
+      el.classList.remove("wrong", "selected");
+      selected.el.classList.remove("wrong", "selected");
+    }, 700);
+  }
+
+  selected = null;
+}
+
+/* ======================
+   TIMER
+====================== */
+
+function startTimer() {
+  time = 0;
+  timer.classList.remove("hidden");
+  timer.textContent = "Time: 0s";
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    time++;
+    timer.textContent = `Time: ${time}s`;
+  }, 1000);
+}
+
+/* ======================
+   TEST MODE
+====================== */
+
+function startTest() {
+  buildCards();
+  showOnly("testView");
+  nextTest();
+}
+
+function nextTest() {
+  const prompt = cards[Math.floor(Math.random() * cards.length)];
+  testPrompt.innerHTML = `<img src="${prompt.src}">`;
+
+  const options = shuffle([...concepts]).slice(0, 4);
+  if (!options.find(o => o.id === prompt.conceptId)) {
+    options[0] = concepts.find(c => c.id === prompt.conceptId);
+  }
+
+  testOptions.innerHTML = "";
+  options.forEach(opt => {
+    const btn = document.createElement("button");
+    btn.textContent = opt.id;
+    btn.onclick = () => {
+      alert(opt.id === prompt.conceptId ? "Correct!" : "Wrong");
+      nextTest();
+    };
+    testOptions.appendChild(btn);
+  });
+}
+</script>
+
+</body>
+</html>
