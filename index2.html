@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Concept-Based Matching</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    button {
+      padding: 10px 15px;
+      margin: 10px;
+      cursor: pointer;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .card {
+      background: white;
+      border: 2px solid #ccc;
+      padding: 10px;
+      cursor: pointer;
+      height: 160px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card img {
+      max-width: 100%;
+      max-height: 140px;
+    }
+
+    .card.selected {
+      border-color: blue;
+    }
+
+    .card.correct {
+      border-color: green;
+      background: #d4ffd4;
+      pointer-events: none;
+    }
+
+    .card.wrong {
+      border-color: red;
+      background: #ffd4d4;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Match Representations</h1>
+<button onclick="startMatch()">Start Match</button>
+
+<div class="grid" id="grid"></div>
+
+<script>
+/*
+  ===============================
+  DATA MODEL (IMPORTANT PART)
+  ===============================
+  One concept → many representations
+*/
+
+const concepts = [
+  {
+    id: "ellipsoid",
+    reps: [
+      { type: "image", src: "elipsoid_formula.png" },
+      { type: "image", src: "elipsoid_formula_alternate_form.png" },
+      { type: "image", src: "elipsoid_diagram.png" },
+      { type: "image", src: "elipsoid_name.png" }
+    ]
+  },
+  {
+    id: "hyperboloid",
+    reps: [
+      { type: "image", src: "hyperboloid_formula.png" },
+      { type: "image", src: "hyperboloid_diagram.png" },
+      { type: "image", src: "hyperboloid_name.png" }
+    ]
+  }
+];
+
+/*
+  ===============================
+  MATCH GAME LOGIC
+  ===============================
+*/
+
+let selectedCard = null;
+
+function startMatch() {
+  selectedCard = null;
+  grid.innerHTML = "";
+
+  const cards = [];
+
+  concepts.forEach(concept => {
+    concept.reps.forEach(rep => {
+      cards.push({
+        conceptId: concept.id,
+        ...rep
+      });
+    });
+  });
+
+  shuffle(cards);
+
+  cards.forEach(card => {
+    const div = document.createElement("div");
+    div.className = "card";
+
+    const img = document.createElement("img");
+    img.src = card.src;
+    div.appendChild(img);
+
+    div.onclick = () => handleClick(div, card);
+    grid.appendChild(div);
+  });
+}
+
+function handleClick(element, card) {
+  if (element.classList.contains("correct")) return;
+
+  element.classList.add("selected");
+
+  if (!selectedCard) {
+    selectedCard = { element, card };
+    return;
+  }
+
+  const match =
+    selectedCard.card.conceptId === card.conceptId &&
+    selectedCard.element !== element;
+
+  if (match) {
+    element.classList.add("correct");
+    selectedCard.element.classList.add("correct");
+  } else {
+    element.classList.add("wrong");
+    selectedCard.element.classList.add("wrong");
+
+    setTimeout(() => {
+      element.classList.remove("wrong", "selected");
+      selectedCard.element.classList.remove("wrong", "selected");
+    }, 700);
+  }
+
+  selectedCard = null;
+}
+
+/*
+  ===============================
+  UTILS
+  ===============================
+*/
+
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+</script>
+
+</body>
+</html>
