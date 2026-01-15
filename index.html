@@ -88,8 +88,16 @@ button {
   <div id="learnProgress" class="text"></div>
   <div class="card" id="learnCard"></div>
   <button onclick="flipLearn()">Flip</button>
-  <button id="wrongBtn" onclick="markWrong()" disabled>Wrong</button>
-  <button id="rightBtn" onclick="markRight()" disabled>Right</button>
+  <div id="qualityButtons" class="hidden">
+    <span>How well did you recall?</span><br>
+    <button onclick="rateCard(5)">5 ✅ Perfect</button>
+    <button onclick="rateCard(4)">4 🙂 Correct with hesitation</button>
+    <button onclick="rateCard(3)">3 😐 Correct with difficulty</button>
+    <button onclick="rateCard(2)">2 😕 Hard to recall</button>
+    <button onclick="rateCard(1)">1 ❌ Barely remembered</button>
+    <button onclick="rateCard(0)">0 ❌ Didn't recall</button>
+  </div>
+  
 </div>
 
 <!-- Match -->
@@ -315,27 +323,35 @@ function showLearnCard() {
   renderMath(learnCard);
 
   // Update progress
-  const mastered = learnQueue.filter(c => c.score >= 4).length;
-  const total = learnQueue.length;
+  const allCards = [...learnQueue, current];
+  const mastered = allCards.filter(c => c.score >= 4).length;
+  const total = allCards.length;
   learnProgress.textContent = `Mastery: ${mastered}/${total} (${Math.round(mastered/total*100)}%)`;
+
 }
 
 
 function flipLearn() {
   if (learnFlipped) return;
   learnFlipped = true;
-  wrongBtn.disabled = false;
-  rightBtn.disabled = false;
+  // hide old buttons
+  wrongBtn.style.display = "none";
+  rightBtn.style.display = "none";
+  // show quality buttons
+  document.getElementById("qualityButtons").classList.remove("hidden");
   showLearnCard();
 }
 
-function markRight() {
-  if (!learnFlipped) return;
+function rateCard(q) {
+  // Hide quality buttons
+  document.getElementById("qualityButtons").classList.add("hidden");
+  // Reset old buttons display
+  wrongBtn.style.display = "inline";
+  rightBtn.style.display = "inline";
 
-  const q = 5; // assume "5 = perfect recall" (you could make this dynamic later)
   current.score = q;
 
-  // SM-2 algorithm
+  // SM-2 Algorithm
   if (q >= 3) {
     if (current.repetitions === 0) {
       current.interval = 1;
@@ -349,30 +365,14 @@ function markRight() {
   } else {
     current.repetitions = 0;
     current.interval = 1;
-    current.ef = Math.max(1.3, current.ef);
+    current.ef = Math.max(1.3, current.ef - 0.2);
   }
 
-  // Put back in queue according to interval
-  // Here interval is in "cards to skip", we can push back multiple times for simplicity
+  // Reinsert card in queue at the end
   learnQueue.push(current);
 
   nextLearn();
 }
-
-
-function markWrong() {
-  if (!learnFlipped) return;
-
-  current.repetitions = 0;
-  current.interval = 1;
-  // optionally, slightly decrease ef
-  current.ef = Math.max(1.3, current.ef - 0.2);
-
-  current.score = 0;
-  learnQueue.push(current);
-  nextLearn();
-}
-
 
 /* =========================
    MATCH MODE
