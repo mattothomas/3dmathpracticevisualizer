@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calc 3 Surface Master</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body);"></script>
+    
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app-container">
+    <header>
+        <h1>Calc 3 Surface Master</h1>
+        <div class="controls">
+            <button id="themeToggle" class="secondary-btn">🌙 Dark Mode</button>
+            <span id="scoreDisplay" class="hidden">Best Time: --</span>
+        </div>
+    </header>
+
+    <nav>
+        <button onclick="app.startLearn()" class="nav-btn">🧠 Learn (SRS)</button>
+        <button onclick="app.startMatch()" class="nav-btn">🎮 Match Game</button>
+        <button onclick="app.startTest()" class="nav-btn">📝 Test</button>
+    </nav>
+
+    <main>
+        <div id="welcomeView" class="view">
+            <p>Master Quadric Surfaces with interactive 3D plots and spaced repetition.</p>
+            <div class="stats-preview">
+                Cards Mastered: <span id="masteredCount">0</span>/9
+            </div>
+        </div>
+
+        <div id="learnView" class="view hidden">
+            <div class="progress-bar-container">
+                <div id="learnProgress" class="progress-bar"></div>
+            </div>
+            <p id="queueStatus">Cards in queue: 9</p>
+            
+            <div class="flashcard-container">
+                <div id="learnCard" class="card learn-card">
+                    </div>
+            </div>
+
+            <div class="controls-area">
+                <button id="flipBtn" class="action-btn" onclick="app.flipCard()">Show Answer</button>
+                <div id="rateBtns" class="hidden">
+                    <button class="wrong-btn" onclick="app.rateCard(false)">❌ Missed it</button>
+                    <button class="correct-btn" onclick="app.rateCard(true)">✅ Got it</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="matchView" class="view hidden">
+            <div id="timer" class="timer">Time: 0s</div>
+            <div class="grid" id="matchGrid"></div>
+        </div>
+
+        <div id="testView" class="view hidden">
+            <div class="card test-prompt" id="testPrompt"></div>
+            <div id="testOptions" class="options-grid"></div>
+        </div>
+    </main>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
