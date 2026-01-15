@@ -1,0 +1,170 @@
+:root {
+    --primary: #4a90e2;
+    --success: #2ecc71;
+    --danger: #e74c3c;
+    --bg: #f4f6f8;
+    --card-bg: #ffffff;
+    --text: #2c3e50;
+    --border: #dfe6e9;
+}
+
+body.dark-mode {
+    --primary: #5da3f0;
+    --bg: #1a1a2e;
+    --card-bg: #16213e;
+    --text: #e94560; /* Highlight color */
+    --text-main: #f4f4f4;
+    --border: #0f3460;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--bg);
+    color: var(--text-main);
+    margin: 0;
+    padding: 0;
+    transition: background 0.3s, color 0.3s;
+}
+
+/* Fix for dark mode text color inheritance */
+body.dark-mode, body.dark-mode .text, body.dark-mode h1, body.dark-mode p {
+    color: var(--text-main);
+}
+
+.app-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+    text-align: center;
+}
+
+/* Header & Nav */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+nav {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 30px;
+}
+
+button {
+    cursor: pointer;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    padding: 10px 20px;
+    transition: transform 0.1s, opacity 0.2s;
+}
+
+button:active { transform: scale(0.98); }
+
+.nav-btn { background: var(--primary); color: white; font-weight: bold; }
+.secondary-btn { background: transparent; border: 1px solid var(--text-main); color: var(--text-main); }
+.action-btn { background: var(--primary); color: white; width: 200px; padding: 15px; font-size: 1.2rem; }
+.wrong-btn { background: var(--danger); color: white; width: 140px; }
+.correct-btn { background: var(--success); color: white; width: 140px; }
+
+/* Views */
+.hidden { display: none !important; }
+.view { animation: fadeIn 0.3s ease; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Cards */
+.card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 250px;
+    margin: 0 auto;
+}
+
+.learn-card {
+    max-width: 600px;
+    min-height: 400px; /* Bigger for 3D plot */
+}
+
+/* 3D Plot Container */
+.plot-container {
+    width: 100%;
+    height: 350px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* Grid for Match Game */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); /* Responsive */
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.grid .card {
+    height: 160px;
+    min-height: auto;
+    padding: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.grid .card img { max-width: 100%; max-height: 100px; object-fit: contain; }
+
+.selected { border: 3px solid var(--primary); transform: scale(1.05); }
+.correct { border-color: var(--success); background: rgba(46, 204, 113, 0.2); pointer-events: none; opacity: 0.6; }
+.wrong { border-color: var(--danger); background: rgba(231, 76, 60, 0.2); animation: shake 0.5s; }
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+/* Progress Bar */
+.progress-bar-container {
+    width: 100%;
+    height: 10px;
+    background: #e0e0e0;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background: var(--success);
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+/* Test Mode Options */
+.options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 20px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+.options-grid button {
+    background: var(--card-bg);
+    border: 2px solid var(--border);
+    color: var(--text-main);
+    padding: 20px;
+}
+.options-grid button:hover { border-color: var(--primary); }
+
+/* Math Text */
+.math-eqn { font-size: 1.2rem; margin: 15px 0; }
