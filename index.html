@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Study Images</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f4f4f4;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    button {
+      margin: 5px;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      max-width: 400px;
+      margin: 20px auto;
+      text-align: center;
+      border-radius: 8px;
+    }
+
+    img {
+      max-width: 100%;
+      max-height: 250px;
+    }
+
+    .match-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .match-item {
+      background: white;
+      padding: 10px;
+      border: 1px solid #ccc;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Visual Study Tool</h1>
+
+<!-- Upload Section -->
+<div>
+  <input type="file" id="imageInput" accept="image/*">
+  <input type="text" id="labelInput" placeholder="Label (e.g. Ellipsoid)">
+  <button onclick="addCard()">Add</button>
+</div>
+
+<hr>
+
+<!-- Mode Buttons -->
+<div>
+  <button onclick="startFlashcards()">Flashcards</button>
+  <button onclick="startLearn()">Learn</button>
+  <button onclick="startMatch()">Match</button>
+</div>
+
+<!-- Flashcard / Learn -->
+<div id="cardView" class="card hidden">
+  <div id="cardContent"></div>
+  <button onclick="flipCard()">Flip</button>
+  <button onclick="nextCard()">Next</button>
+</div>
+
+<!-- Match Mode -->
+<div id="matchView" class="hidden">
+  <div class="match-grid" id="matchGrid"></div>
+</div>
+
+<script>
+  let cards = JSON.parse(localStorage.getItem("cards")) || [];
+  let index = 0;
+  let showingImage = true;
+
+  function save() {
+    localStorage.setItem("cards", JSON.stringify(cards));
+  }
+
+  function addCard() {
+    const file = imageInput.files[0];
+    const label = labelInput.value;
+    if (!file || !label) return alert("Add image and label");
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      cards.push({ label, image: reader.result });
+      save();
+      alert("Added!");
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function showCard() {
+    const card = cards[index];
+    if (!card) return;
+
+    cardContent.innerHTML = showingImage
+      ? `<img src="${card.image}">`
+      : `<h2>${card.label}</h2>`;
+  }
+
+  function flipCard() {
+    showingImage = !showingImage;
+    showCard();
+  }
+
+  function nextCard() {
+    index = (index + 1) % cards.length;
+    showingImage = true;
+    showCard();
+  }
+
+  function startFlashcards() {
+    if (!cards.length) return alert("No cards!");
+    cardView.classList.remove("hidden");
+    matchView.classList.add("hidden");
+    index = 0;
+    showingImage = true;
+    showCard();
+  }
+
+  function startLearn() {
+    startFlashcards();
+    alert("Learn Mode: flip, then decide if you knew it.");
+  }
+
+  function startMatch() {
+    cardView.classList.add("hidden");
+    matchView.classList.remove("hidden");
+    renderMatch();
+  }
+
+  function renderMatch() {
+    matchGrid.innerHTML = "";
+    const shuffled = [...cards].sort(() => Math.random() - 0.5);
+
+    shuffled.forEach(card => {
+      const imgDiv = document.createElement("div");
+      imgDiv.className = "match-item";
+      imgDiv.innerHTML = `<img src="${card.image}">`;
+      imgDiv.onclick = () => alert(card.label);
+
+      const labelDiv = document.createElement("div");
+      labelDiv.className = "match-item";
+      labelDiv.textContent = card.label;
+
+      matchGrid.append(imgDiv, labelDiv);
+    });
+  }
+</script>
+
+</body>
+</html>
