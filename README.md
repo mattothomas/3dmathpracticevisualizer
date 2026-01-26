@@ -7,4 +7,4 @@ Even in Quizlet’s Match mode, dragging the “ellipsoid” card onto the corre
 So I built this tool to let you connect any representation to any other, and finally practice the surfaces in a way that actually makes sense.
 
 Check it out here:  
-https://mattothomas.github.io/3dmathpractice/
+https://mattothomas.github.io/webapps/learningtools/3dmath/
